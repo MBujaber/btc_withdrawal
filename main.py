@@ -7,16 +7,19 @@ from binance.helpers import round_step_size
 from dotenv import load_dotenv
 import requests
 from requests.exceptions import ReadTimeout
+from telegram import Bot 
 
 # Configure logging
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
 def send_telegram_notification(message):
     telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
     telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
-    url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage?chat_id={telegram_chat_id}&text={message}"
+    bot = Bot(token=telegram_bot_token)
+
     try:
-        requests.get(url)
+        bot.send_message(chat_id=telegram_chat_id, text=message)
     except Exception as e:
         logging.error(f"Failed to send Telegram notification: {e}")
 
