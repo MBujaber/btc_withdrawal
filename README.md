@@ -15,4 +15,5 @@ TELEGRAM_CHAT_ID=<your_telegram_chat_id>
 - Install required Python libraries
 pip install python-binance
 pip install python-dotenv
+pip install python-telegram-bot
 
