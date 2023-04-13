@@ -7,21 +7,27 @@ from binance.helpers import round_step_size
 from dotenv import load_dotenv
 import requests
 from requests.exceptions import ReadTimeout
-from telegram import Bot 
+from telegram import Bot
+import asyncio
+
 
 # Configure logging
 logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
-def send_telegram_notification(message):
+def send_telegram_notification(message, chat_id):
     telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
-    telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
     bot = Bot(token=telegram_bot_token)
 
-    try:
-        bot.send_message(chat_id=telegram_chat_id, text=message)
-    except Exception as e:
-        logging.error(f"Failed to send Telegram notification: {e}")
+    async def send_message_async():
+        try:
+            await bot.send_message(chat_id=chat_id, text=message)
+        except Exception as e:
+            logging.error(f"Failed to send Telegram notification: {e}")
+
+    asyncio.run(send_message_async())
+
+
 
 def determine_btc_network(address):
     if address.startswith('3'):
@@ -49,6 +55,7 @@ load_dotenv()
 api_key = os.getenv('BINANCE_API_KEY')
 api_secret = os.getenv('BINANCE_API_SECRET')
 ledger_btc_address = os.getenv('LEDGER_BTC_ADDRESS')
+telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
 
 # Initialize Binance client
 client = Client(api_key, api_secret, {"timeout": 20})  # Increase the timeout to 20 seconds
@@ -88,17 +95,18 @@ while True:
 
                     # Send Telegram notification
                     message = f"Successfully withdrawn {withdrawal_amount_str} BTC (with a fee of {btc_withdraw_fee}) to Ledger wallet. Net amount deposited: {net_withdrawal_amount_str} BTC."
-                    send_telegram_notification(message)
+                    send_telegram_notification(message, telegram_chat_id)
 
                 except BinanceAPIException as e:
                     logging.error(f"Failed to withdraw BTC: {e}. Parameters: Address={ledger_btc_address}, Amount={withdrawal_amount_str}, Network={network}")
                     message = f"Failed to withdraw BTC: {e.message}. Parameters: Address={ledger_btc_address}, Amount={withdrawal_amount_str}, Network={network}"
-                    send_telegram_notification(message)
+                    send_telegram_notification(message, telegram_chat_id)
 
             else:
                 logging.error("Withdrawal amount is less than the minimum withdrawal amount.")
                 message = f"Failed to withdraw BTC: Withdrawal amount ({withdrawal_amount_str}) is less than the minimum withdrawal amount ({min_btc_withdrawal_amount})."
-                send_telegram_notification(message)
+                send_telegram_notification(message, telegram_chat_id)
+
                 exit()
 
 
@@ -108,16 +116,16 @@ while True:
     except BinanceRequestException as e:
         logging.error(f"A request exception occurred: {e}")
         message = f"A request exception occurred: {e}"
-        send_telegram_notification(message)
+        send_telegram_notification(message, telegram_chat_id)
 
     except ReadTimeout as e:
         logging.warning(f"Read timeout occurred: {e}")
         message = f"Read timeout occurred: {e}"
-        send_telegram_notification(message)
+        send_telegram_notification(message, telegram_chat_id)
 
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         message = f"An error occurred: {e}"
-        send_telegram_notification(message)
+        send_telegram_notification(message, telegram_chat_id)
 
     time.sleep(1800)
